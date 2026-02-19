@@ -6,9 +6,15 @@
 <style>
     .hero-section {
         text-align: center;
-        padding: 6rem 1rem 4rem;
+        padding: 4rem 1rem 3rem;
         max-width: 800px;
         margin: 0 auto;
+    }
+
+    @media (min-width: 768px) {
+        .hero-section {
+            padding: 6rem 1rem 4rem;
+        }
     }
 
     .hero-title {
@@ -84,8 +90,9 @@
         </p>
 
         <form action="{{ url_for('main.upload_csv') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
-            <input type="file" id="csvInput" name="csv_file" accept=".csv" class="d-none"
-                onchange="handleFileSelect(this)">
+            <input type="file" id="csvInput" name="csv_file"
+                accept=".csv,text/csv,application/vnd.ms-excel,application/csv,text/x-csv,application/x-csv,text/comma-separated-values,text/x-comma-separated-values"
+                class="d-none" onchange="handleFileSelect(this)">
 
             <div id="initialUpload">
                 <button type="button" class="btn btn-upload" onclick="document.getElementById('csvInput').click()">
