@@ -16,19 +16,16 @@
         border: 1px solid #dadce0;
         border-radius: 0px;
         width: 100%;
-        /* Mobile height */
-        height: 50vh;
-        min-height: 400px;
-
+        height: 600px;
+        /* Fixed height requested by user */
         position: relative;
         overflow: hidden;
     }
 
     @media (min-width: 992px) {
         #graphContainer {
-            height: 100% !important;
+            height: 600px !important;
             flex-grow: 1;
-            max-height: none;
         }
     }
 
@@ -411,7 +408,7 @@
                 <div class="card-header bg-white py-3 px-4">
                     <h6 class="mb-0 fw-bold"><i class="bi bi-exclamation-octagon me-2"></i>Detected Rings</h6>
                 </div>
-                <div class="card-body p-0" style="overflow-y:auto; max-height:650px;">
+                <div class="card-body p-0" style="overflow-y:auto; height:600px;">
                     {% if fraud_rings %}
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -739,8 +736,8 @@
         // Calculate scale
         // Logic: if lots of nodes, we might need more space/less zoom
         // But simply fitting to container is usually best.
-        // We use 0.9 factor to leave margin
-        const scale = Math.min(4, 0.85 / Math.max(dx / W, dy / H));
+        // We use 0.75 factor to leave margin (zoom out slightly more)
+        const scale = Math.min(4, 0.75 / Math.max(dx / W, dy / H));
         const translate = [W / 2 - scale * x, H / 2 - scale * y];
 
         svg.transition()
