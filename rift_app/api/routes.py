@@ -12,6 +12,7 @@ from rift_app.models import db, UploadSession, Transaction, FraudRing, Suspiciou
 from rift_app.services.detection import run_detection
 from rift_app.services.ai import explain_suspicious_account, generate_investigation_summary, chat_with_data
 from rift_app.services.reporting import generate_pdf_report
+from sqlalchemy import text
 
 main_bp = Blueprint('main', __name__)
 
@@ -20,6 +21,23 @@ main_bp = Blueprint('main', __name__)
 def ensure_user_session():
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
+
+
+@main_bp.route('/fix-db-schema')
+def fix_db_schema():
+    try:
+        with db.engine.connect() as conn:
+            # Check if column exists
+            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='upload_sessions' AND column_name='user_id'"))
+            if not result.fetchone():
+                conn.execute(text("ALTER TABLE upload_sessions ADD COLUMN user_id VARCHAR(36)"))
+                conn.execute(text("CREATE INDEX ix_upload_sessions_user_id ON upload_sessions (user_id)"))
+                conn.commit()
+                return "Success: user_id column added to upload_sessions table. You can now go back to home."
+            return "Column user_id already exists. Database is up to date."
+    except Exception as e:
+        return f"Error executing migration: {str(e)}"
+
 
 
 @main_bp.route('/')
