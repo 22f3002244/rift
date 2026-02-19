@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AirBind — Money Muling Detection{% endblock %}</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            /* Google Material Palette */
+            --bg-dark: #ffffff;
+            --bg-card: #ffffff;
+            --bg-panel: #f8f9fa;
+            /* Light gray for headers/panels */
+
+            --accent-green: #34a853;
+            --accent-red: #ea4335;
+            --accent-yellow: #fbbc04;
+            --accent-blue: #1a73e8;
+
+            --text-primary: #202124;
+            /* Google Dark Grey */
+            --text-muted: #5f6368;
+            /* Google Muted Text */
+            --border: #dadce0;
+            /* Google Divider Color */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navbar */
+        .navbar-brand {
+            font-family: 'Google Sans', 'Inter', sans-serif;
+            /* Fallback to Inter if Google Sans not loaded */
+            font-weight: 500;
+            font-size: 1.35rem;
+            letter-spacing: -0.5px;
+            color: var(--text-primary) !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar {
+            background: #ffffff !important;
+            border-bottom: 1px solid var(--border);
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            box-shadow: none;
+            /* Clean flat look */
+        }
+
+        .nav-link {
+            color: var(--text-muted) !important;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: normal;
+            text-transform: none;
+            /* Google uses sentence case or normal case usually */
+            margin-left: 1rem;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary) !important;
+        }
+
+        /* Cards */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e2e2;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e2e2;
+            border-radius: 12px 12px 0 0 !important;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 1rem 1.25rem;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Badges */
+        .badge-risk-high {
+            background: #fce8e6;
+            color: #c5221f;
+            border: 1px solid transparent;
+        }
+
+        .badge-risk-med {
+            background: #fef7e0;
+            color: #b06000;
+            border: 1px solid transparent;
+        }
+
+        .badge-risk-low {
+            background: #e6f4ea;
+            color: #137333;
+            border: 1px solid transparent;
+        }
+
+        .pattern-badge {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 16px;
+            /* Pill shape */
+            background: #e8f0fe;
+            color: #1a73e8;
+            border: none;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        /* Buttons */
+        .btn-forensic {
+            background: #1a1a1a;
+            border: 1px solid #1a1a1a;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: normal;
+            text-transform: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.25rem;
+            transition: all 0.2s;
+        }
+
+        .btn-forensic:hover {
+            background: #333333;
+            border-color: #333333;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .btn-forensic:disabled {
+            background: #f1f3f4;
+            color: #bdc1c6;
+            border-color: transparent;
+        }
+
+        .btn-forensic-secondary {
+            background: #ffffff;
+            border: 1px solid #e2e2e2;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 0.5rem 1.25rem;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-forensic-secondary:hover {
+            background: #f8f9fa;
+            border-color: #d2d2d2;
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-forensic-secondary:disabled {
+            background: #f8f9fa;
+            color: #bdc1c6;
+            border-color: #e2e2e2;
+        }
+
+        /* Tables */
+        .table {
+            color: var(--text-primary);
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background: #ffffff;
+            border-bottom: 2px solid var(--border);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0.75rem;
+        }
+
+        .table td {
+            border-color: var(--border);
+            vertical-align: middle;
+            font-size: 0.875rem;
+            padding: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Score bar */
+        .score-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #f1f3f4;
+            /* Light gray track */
+            overflow: hidden;
+            width: 80px;
+        }
+
+        .score-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        /* Monospace text */
+        .mono {
+            font-family: 'Roboto Mono', 'Space Mono', monospace;
+        }
+
+        /* Alert overrides */
+        .alert-dark-custom {
+            background: #3c4043;
+            border: none;
+            color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .alert-dark-custom .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Google Sans', 'Inter', sans-serif;
+            font-size: 2.5rem;
+            /* Large and clear */
+            font-weight: 400;
+            /* Google uses lighter weights for large type sometimes */
+            line-height: 1.1;
+            color: var(--text-primary) !important;
+            /* Force black for numbers usually, or use color meaning */
+        }
+
+        .stat-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: none;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #dadce0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #bdc1c6;
+        }
+
+        /* No Animations needed */
+        .pulse-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            display: inline-block;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 30px 0;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 60px;
+            background: #f8f9fa;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg sticky-top bg-white border-bottom">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('main.index') }}">
+                <i class="bi bi-shield-lock-fill text-dark"></i>
+                <span class="fw-bold text-dark" style="font-family: 'Google Sans', 'Inter', sans-serif;">AirBind</span>
+            </a>
+            <div class="ms-auto">
+                <a href="https://github.com/22f3002244/rift" target="_blank"
+                    class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-github me-2"></i>GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container-fluid px-4 mt-3">
+        {% for cat, msg in messages %}
+        <div class="alert alert-dark-custom alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ msg }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <span class="text-muted small">AirBind AI Engine v1.0 • Built for RIFT Hackathon 2026</span>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}AirBind — Money Muling Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        text-align: center;
+        padding: 6rem 1rem 4rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-family: 'Google Sans', sans-serif;
+        font-weight: 700;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        letter-spacing: -1px;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        margin-bottom: 3rem;
+        font-weight: 400;
+        line-height: 1.6;
+        max-width: 650px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .feature-card {
+        text-align: center;
+        padding: 2.5rem 2rem;
+        height: 100%;
+        background: #fff;
+        border: 1px solid transparent;
+        border-radius: 16px;
+    }
+
+    .feature-card:hover {
+        border-color: var(--border);
+    }
+
+    .feature-icon {
+        font-size: 2rem;
+        width: 80px;
+        height: 80px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        border-radius: 50%;
+    }
+
+    .btn-upload {
+        background: #000000;
+        color: white;
+        padding: 1rem 3rem;
+        font-size: 1.1rem;
+        border-radius: 50px;
+        font-weight: 500;
+        border: none;
+        transition: background-color 0.2s;
+    }
+
+    .btn-upload:hover {
+        background: #333;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container px-4">
+    <div class="hero-section">
+        <h1 class="hero-title">Money Muling Analysis Engine</h1>
+        <p class="hero-subtitle">
+            Securely upload transaction data to detect fraud rings, circular patterns, and suspicious networks with
+            AI-powered forensic analysis.
+        </p>
+
+        <form action="{{ url_for('main.upload_csv') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+            <input type="file" id="csvInput" name="csv_file" accept=".csv" class="d-none"
+                onchange="handleFileSelect(this)">
+
+            <div id="initialUpload">
+                <button type="button" class="btn btn-upload" onclick="document.getElementById('csvInput').click()">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>Upload CSV File
+                </button>
+            </div>
+
+            <div id="fileSelectedMessage" class="mt-4 d-none p-4 rounded-4 bg-light d-inline-block border"
+                style="min-width: 300px;">
+                <div class="mb-3">
+                    <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-1"></i>
+                </div>
+                <p class="mb-3 fw-bold text-dark fs-5" id="fileName"></p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+                        onclick="document.getElementById('csvInput').click()">Change</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4" id="analyzeBtn">
+                        Start Analysis <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="progressSection" class="d-none mt-5 mx-auto" style="max-width: 400px;">
+                <p class="small text-muted fw-bold mb-2 text-uppercase letter-spacing-1">Processing Transactions...</p>
+                <div class="progress" style="height:6px; border-radius: 3px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="row g-4 pb-5 mb-5 justify-content-center">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(234,67,53,0.1); color: var(--accent-red);">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <h5 class="fw-bold mb-3">Circular Routing</h5>
+                <p class="text-muted mb-0">Detects cycles of 3–5 hops where funds loop back to the origin, a signature
+                    money laundering tactic.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(251,188,4,0.1); color: var(--accent-yellow);">
+                    <i class="bi bi-diagram-2-fill"></i>
+                </div>
+                <h5 class="fw-bold mb-3">Smurfing Patterns</h5>
+                <p class="text-muted mb-0">Identifies fan-in/fan-out structures where large sums are rapidly broken down
+                    or aggregated.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(52,168,83,0.1); color: var(--accent-green);">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h5 class="fw-bold mb-3">Shell Chains</h5>
+                <p class="text-muted mb-0">Uncovers long chains of transfers through low-activity accounts designed to
+                    layer illicit funds.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            document.getElementById('initialUpload').classList.add('d-none');
+            document.getElementById('progressSection').classList.remove('d-none');
+            document.getElementById('uploadForm').submit();
+        }
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', () => {
+        document.getElementById('progressSection').classList.remove('d-none');
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('analyzeBtn').innerHTML = 'Analyzing...';
+    });
+</script>
+{% endblock %}

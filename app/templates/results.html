@@ -1,0 +1,875 @@
+{% extends "base.html" %}
+
+{% block title %}AirBind — Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-header {
+        background: #ffffff;
+        border-bottom: 1px solid #dadce0;
+        padding: 24px 0;
+    }
+
+    /* Graph canvas */
+    #graphContainer {
+        background: #ffffff;
+        border: 1px solid #dadce0;
+        border-radius: 0px;
+        width: 100%;
+        height: 650px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #graphSvg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .node-tooltip {
+        position: absolute;
+        background: #ffffff;
+        border: 1px solid #dadce0;
+        border-radius: 0px;
+        padding: 12px 16px;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.85rem;
+        pointer-events: none;
+        z-index: 100;
+        color: var(--text-primary);
+
+
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .graph-controls {
+        position: absolute;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 10;
+    }
+
+    .graph-btn {
+        background: #ffffff;
+        border: 1px solid #dadce0;
+        color: #5f6368;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    .graph-btn:hover {
+        background: #f1f3f4;
+        color: #202124;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: #5f6368;
+        font-weight: 500;
+    }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .stat-box {
+        padding: 0;
+    }
+
+    .risk-bar-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .risk-bar {
+        height: 6px;
+        border-radius: 3px;
+        background: #f1f3f4;
+        width: 60px;
+        overflow: hidden;
+    }
+
+    .risk-fill-high {
+        background: var(--accent-red);
+    }
+
+    .risk-fill-med {
+        background: var(--accent-yellow);
+    }
+
+    .risk-fill-low {
+        background: var(--accent-green);
+    }
+
+
+    .chat-widget {
+        position: fixed;
+        bottom: 90px;
+        right: 24px;
+        width: 380px;
+        height: 500px;
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        z-index: 1000;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0;
+        transform: translateY(20px);
+        pointer-events: none;
+        border: 1px solid #dadce0;
+    }
+
+    .chat-widget.active {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: all;
+    }
+
+    .chat-header {
+        background: #1a73e8;
+        color: white;
+        padding: 16px 20px;
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'Google Sans', sans-serif;
+    }
+
+    .chat-fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        background: #1a73e8;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+        cursor: pointer;
+        z-index: 1000;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .chat-fab:hover {
+        transform: scale(1.05);
+        background: #1557b0;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: #f8f9fa;
+    }
+
+    .chat-bubble {
+        padding: 12px 18px;
+        border-radius: 18px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        max-width: 85%;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .chat-user {
+        background: #e8f0fe;
+        color: #1a73e8;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+        border: 1px solid rgba(26, 115, 232, 0.1);
+    }
+
+    .chat-ai {
+        background: #ffffff;
+        color: #3c4043;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+        border: 1px solid #dadce0;
+    }
+
+    .chat-label {
+        font-family: 'Google Sans', sans-serif;
+        font-size: 0.7rem;
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #5f6368;
+    }
+
+    @keyframes pulse-red {
+        0% {
+            r: 8;
+            opacity: 1;
+        }
+
+        50% {
+            r: 16;
+            opacity: 0.4;
+        }
+
+        100% {
+            r: 8;
+            opacity: 1;
+        }
+    }
+
+    .pulsing-node {
+        animation: pulse-red 2s infinite;
+    }
+
+    .score-high {
+        color: var(--accent-red);
+        font-weight: bold;
+    }
+
+    .score-med {
+        color: var(--accent-yellow);
+        font-weight: bold;
+    }
+
+    .score-low {
+        color: var(--accent-green);
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid px-4 py-4" style="max-width: 1200px;">
+
+    <div class="mb-4">
+        <span class="text-muted" style="font-size:0.75rem;">
+            Analyzed {{ session.upload_time.strftime('%d %b %Y %H:%M') }} &nbsp;·&nbsp;
+            {{ session.processing_time }}s processing time
+        </span>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('main.download_json', session_id=session.id) }}" class="btn btn-forensic px-3 py-2">
+                <i class="bi bi-file-earmark-code me-2"></i>Export JSON
+            </a>
+            <a href="{{ url_for('main.download_pdf', session_id=session.id, ai_summary=ai_summary) }}" target="_blank"
+                class="btn btn-forensic-secondary px-3 py-2">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Download PDF Report
+            </a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-forensic-secondary px-3 py-2 ms-2">
+                <i class="bi bi-plus-lg me-2"></i>Analyze New File
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-4 mb-5">
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle p-3 me-3"
+                        style="color:var(--accent-blue);">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-0 fw-bold" style="color:var(--text-primary);">{{ session.total_accounts }}</h3>
+                        <div class="text-muted small fw-bold text-uppercase">Accounts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle p-3 me-3"
+                        style="color:var(--accent-red);">
+                        <i class="bi bi-shield-exclamation fs-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-0 fw-bold" style="color:var(--text-primary);">{{ suspicious_accounts|length }}
+                        </h3>
+                        <div class="text-muted small fw-bold text-uppercase">Suspicious</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle p-3 me-3"
+                        style="color:var(--accent-yellow);">
+                        <i class="bi bi-diagram-3-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-0 fw-bold" style="color:var(--text-primary);">{{ fraud_rings|length }}</h3>
+                        <div class="text-muted small fw-bold text-uppercase">Fraud Rings</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle p-3 me-3"
+                        style="color:var(--accent-green);">
+                        <i class="bi bi-arrow-left-right fs-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-0 fw-bold" style="color:var(--text-primary);">{{ session.total_transactions }}
+                        </h3>
+                        <div class="text-muted small fw-bold text-uppercase">Transactions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Summary -->
+    {% if ai_summary %}
+    <div class="card mb-5">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <div class="d-flex align-items-center">
+                <h6 class="mb-0 fw-bold">AI Analysis</h6>
+                <span class="badge ms-2"
+                    style="background:#e8f0fe; color:#1a73e8; border:1px solid rgba(26,115,232,0.2);">GROQ LLAMA3</span>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <p class="mb-0 lead" style="font-size: 1.1rem; color: #3c4043; line-height: 1.6;">{{ ai_summary }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Graph + Fraud Rings -->
+    <div class="row g-4 mb-5">
+
+        <!-- Graph Visualization -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-bullseye me-2"></i>Transaction Network Pattern</h6>
+                    <div class="d-flex gap-3 small">
+                        <div class="legend-item"><span class="legend-dot"
+                                style="background:var(--accent-red);"></span>Suspicious</div>
+                        <div class="legend-item"><span class="legend-dot"
+                                style="background:var(--accent-blue);"></span>Normal</div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="graphContainer">
+                        <svg id="graphSvg"></svg>
+                        <div class="graph-controls">
+                            <div class="graph-btn" onclick="zoomIn()" title="Zoom In"><i class="bi bi-plus-lg"></i>
+                            </div>
+                            <div class="graph-btn" onclick="zoomOut()" title="Zoom Out"><i class="bi bi-dash-lg"></i>
+                            </div>
+                            <div class="graph-btn" onclick="resetZoom()" title="Reset"><i
+                                    class="bi bi-arrows-fullscreen" style="font-size:0.8rem;"></i></div>
+                        </div>
+                        <div id="tooltip" class="node-tooltip d-none"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fraud Ring Summary Table -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-white py-3 px-4">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-exclamation-octagon me-2"></i>Detected Rings</h6>
+                </div>
+                <div class="card-body p-0" style="overflow-y:auto; max-height:650px;">
+                    {% if fraud_rings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 text-muted small fw-bold text-uppercase">Details</th>
+                                    <th class="text-end pe-4 text-muted small fw-bold text-uppercase">Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ring in fraud_rings %}
+                                <tr>
+                                    <td class="ps-4 py-3">
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold text-dark small">{{ ring.pattern_type.replace('_', ' ')
+                                                }}</span>
+                                            <span class="mono text-muted" style="font-size:0.7rem;">ID: {{ ring.ring_id
+                                                }}</span>
+                                            <span class="text-muted small mt-1">{{ ring.member_accounts|length }}
+                                                Members</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex flex-column align-items-end">
+                                            <span
+                                                class="badge rounded-pill mb-1
+                                                {% if ring.risk_score >= 75 %}bg-danger{% elif ring.risk_score >= 50 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                                Risk: {{ ring.risk_score }}
+                                            </span>
+                                            <div class="risk-bar" style="width:50px; height:4px;">
+                                                <div class="risk-fill-{% if ring.risk_score >= 75 %}high{% elif ring.risk_score >= 50 %}med{% else %}low{% endif %}"
+                                                    style="width:{{ ring.risk_score }}%; height:100%;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <i class="bi bi-check-circle-fill fs-1 text-success mb-3"></i>
+                        <p class="mb-0 fw-medium">No fraud rings detected</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suspicious Accounts Table -->
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="card h-100">
+                <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-person-x-fill me-2"></i>Flagged Accounts</h6>
+                    <input type="text" class="form-control form-control-sm" id="accountSearch" 
+                        placeholder="Search account..." style="max-width: 250px;">
+                </div>
+                <div class="card-body p-0">
+                    {% if suspicious_accounts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 text-muted small fw-bold text-uppercase">Account</th>
+                                    <th class="text-muted small fw-bold text-uppercase">Patterns</th>
+                                    <th class="text-muted small fw-bold text-uppercase">Score</th>
+                                    <th class="text-end pe-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for acc in suspicious_accounts %}
+                                <tr>
+                                    <td class="ps-4 font-monospace small text-primary">{{ acc.account_id }}</td>
+                                    <td>
+                                        {% for p in acc.detected_patterns %}
+                                        <span class="badge bg-light text-dark border me-1">{{ p.replace('_', ' ')
+                                            }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="fw-bold
+                                            {% if acc.suspicion_score >= 75 %}text-danger{% elif acc.suspicion_score >= 50 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ acc.suspicion_score }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-dark border-0 rounded-circle"
+                                            onclick="showAccountDetail('{{ acc.account_id }}', {{ session.id }})">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <p class="mb-0">No suspicious accounts found.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Account Detail Modal -->
+<div class="modal fade" id="accountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h6 class="modal-title fw-bold font-monospace" id="modalTitle">ACCOUNT DETAIL</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="modalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Chat Widget -->
+<div class="chat-fab" onclick="toggleChat()" title="Chat with AI">
+    <i class="bi bi-chat-dots-fill fs-4"></i>
+</div>
+
+<div class="chat-widget" id="chatWidget">
+    <div class="chat-header">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-robot"></i>
+            <span>AI Investigator</span>
+        </div>
+        <button class="btn btn-sm text-white" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div>
+            <p class="chat-label">AI ASSISTANT</p>
+            <div class="chat-bubble chat-ai shadow-sm">
+                I've analyzed this dataset. Ask me anything about the suspicious accounts, fraud rings, or detected
+                patterns.
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3 bg-white border-top rounded-bottom">
+        <div class="d-flex gap-2 mb-2 overflow-auto pb-1" style="scrollbar-width:none;">
+            <button class="btn btn-xs btn-outline-primary rounded-pill small text-nowrap"
+                onclick="quickAsk('Highest risk ring?')">Highest Risk?</button>
+            <button class="btn btn-xs btn-outline-primary rounded-pill small text-nowrap"
+                onclick="quickAsk('Explain smurfing')">Smurfing?</button>
+        </div>
+        <div class="input-group">
+            <input type="text" id="chatInput" class="form-control bg-light border-0" placeholder="Ask a question..."
+                onkeypress="if(event.key==='Enter') sendChat()">
+            <button class="btn btn-primary" onclick="sendChat()">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- D3.js -->
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
+<script>
+    const SESSION_ID = {{ session.id }};
+    const GRAPH_DATA = {{ graph_data| safe }};
+
+    // ─── D3 FORCE GRAPH ──────────────────────────────────────────────────────────
+    const container = document.getElementById('graphContainer');
+    const svg = d3.select('#graphSvg');
+    const tooltip = document.getElementById('tooltip');
+
+    let currentZoom = 1;
+    const zoomBehavior = d3.zoom().scaleExtent([0.1, 4]).on('zoom', (e) => {
+        g.attr('transform', e.transform);
+        currentZoom = e.transform.k;
+    });
+    svg.call(zoomBehavior);
+
+    const g = svg.append('g');
+
+    // Arrow markers
+    const defs = svg.append('defs');
+    ['normal', 'suspicious'].forEach(type => {
+        defs.append('marker')
+            .attr('id', `arrow-${type}`)
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 24).attr('refY', 0)
+            .attr('markerWidth', 6).attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', type === 'suspicious' ? '#ea4335' : '#dadce0');
+    });
+
+    const W = container.clientWidth;
+    const H = container.clientHeight;
+
+    // Use a slightly larger collision radius and charge for better spacing
+    const simulation = d3.forceSimulation(GRAPH_DATA.nodes)
+        .force('link', d3.forceLink(GRAPH_DATA.edges).id(d => d.id).distance(100))
+        .force('charge', d3.forceManyBody().strength(-400)) // Stronger repulsion
+        .force('center', d3.forceCenter(W / 2, H / 2))
+        .force('collision', d3.forceCollide(40)); // Increased collision
+
+    // Edges
+    const link = g.append('g').selectAll('line')
+        .data(GRAPH_DATA.edges).enter().append('line')
+        .attr('stroke', d => d.suspicious ? '#ea4335' : '#dadce0')
+        .attr('stroke-width', d => d.suspicious ? 2 : 1)
+        .attr('stroke-opacity', d => d.suspicious ? 0.6 : 0.4)
+        .attr('marker-end', d => `url(#arrow-${d.suspicious ? 'suspicious' : 'normal'})`);
+
+    // Nodes
+    const nodeGroup = g.append('g').selectAll('g')
+        .data(GRAPH_DATA.nodes).enter().append('g')
+        .attr('cursor', 'pointer')
+        .call(d3.drag()
+            .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+        );
+
+    // Outer glow for suspicious (Pulsing)
+    nodeGroup.filter(d => d.suspicious).append('circle')
+        .attr('r', 12)
+        .attr('fill', 'rgba(234,67,53,0.2)')
+        .attr('class', 'pulsing-node');
+
+    // Main node circle
+    nodeGroup.append('circle')
+        .attr('r', d => d.suspicious ? 10 : 7)
+        .attr('fill', d => {
+            if (!d.suspicious) return '#1a73e8'; /* Google Blue */
+            const p = d.pattern || '';
+            if (p.includes('cycle')) return '#ea4335';
+            if (p.includes('smurf')) return '#fbbc04';
+            return '#ea4335';
+        })
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', 2);
+
+    // Label
+    nodeGroup.filter(d => d.suspicious || d.tx_count > 5).append('text')
+        .text(d => d.id.length > 6 ? d.id.substring(0, 6) + '…' : d.id)
+        .attr('dy', 24)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#202124')
+        .style('font-family', "'Roboto', sans-serif")
+        .style('font-size', '10px')
+        .style('font-weight', '500')
+        .style('pointer-events', 'none');
+
+    // Tooltip
+    nodeGroup.on('mouseover', (e, d) => {
+        const rect = container.getBoundingClientRect();
+        tooltip.innerHTML = `
+        <div style="color:${d.suspicious ? '#ea4335' : '#1a73e8'}; margin-bottom:6px; font-weight:bold;">${d.id}</div>
+        <div>Status: <span class="badge ${d.suspicious ? 'bg-danger' : 'bg-success'}">${d.suspicious ? 'Suspicious' : 'Normal'}</span></div>
+        ${d.pattern && d.pattern !== 'normal' ? `<div>Pattern: <span class="text-warning">${d.pattern.replace(/_/g, ' ')}</span></div>` : ''}
+        <div class="mt-1">Connections: <strong>${d.tx_count || 0}</strong></div>
+        ${d.suspicious ? '<div class="text-muted small mt-2">Click for details</div>' : ''}
+    `;
+        tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+        tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+        tooltip.classList.remove('d-none');
+    })
+        .on('mousemove', (e) => {
+            const rect = container.getBoundingClientRect();
+            tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+            tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+        })
+        .on('mouseout', () => tooltip.classList.add('d-none'))
+        .on('click', (e, d) => {
+            if (d.suspicious) showAccountDetail(d.id, SESSION_ID);
+        });
+
+    simulation.on('tick', () => {
+        link
+            .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    // Auto-zoom to fit all nodes after simulation cools down
+    // We'll wait a bit (e.g. 2 seconds) or check alpha
+    setTimeout(autoZoomToFit, 1500);
+
+    function autoZoomToFit() {
+        if (!GRAPH_DATA.nodes.length) return;
+
+        // Calculate bounding box
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        GRAPH_DATA.nodes.forEach(d => {
+            if (d.x < minX) minX = d.x;
+            if (d.x > maxX) maxX = d.x;
+            if (d.y < minY) minY = d.y;
+            if (d.y > maxY) maxY = d.y;
+        });
+
+        const padding = 40;
+        const width = maxX - minX;
+        const height = maxY - minY;
+
+        if (width === 0 || height === 0) return;
+
+        const bounds = [[minX, minY], [maxX, maxY]];
+        const dx = bounds[1][0] - bounds[0][0];
+        const dy = bounds[1][1] - bounds[0][1];
+        const x = (bounds[0][0] + bounds[1][0]) / 2;
+        const y = (bounds[0][1] + bounds[1][1]) / 2;
+
+        // Calculate scale
+        // Logic: if lots of nodes, we might need more space/less zoom
+        // But simply fitting to container is usually best.
+        // We use 0.9 factor to leave margin
+        const scale = Math.min(4, 0.85 / Math.max(dx / W, dy / H));
+        const translate = [W / 2 - scale * x, H / 2 - scale * y];
+
+        svg.transition()
+            .duration(750)
+            .call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+    }
+
+    function zoomIn() { svg.transition().call(zoomBehavior.scaleBy, 1.3); }
+    function zoomOut() { svg.transition().call(zoomBehavior.scaleBy, 0.77); }
+    function resetZoom() { autoZoomToFit(); }
+
+    // ─── ACCOUNT DETAIL MODAL ────────────────────────────────────────────────────
+    async function showAccountDetail(accountId, sessionId) {
+        const modal = new bootstrap.Modal(document.getElementById('accountModal'));
+        document.getElementById('modalTitle').textContent = `ACCOUNT: ${accountId}`;
+        document.getElementById('modalBody').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Analyzing account history...</p></div>';
+        modal.show();
+
+        try {
+            const res = await fetch(`/api/account-detail/${sessionId}/${accountId}`);
+            const d = await res.json();
+
+            const scoreColor = d.suspicion_score >= 75 ? '#ea4335' : d.suspicion_score >= 50 ? '#fbbc04' : '#34a853';
+
+            document.getElementById('modalBody').innerHTML = `
+            <div class="row g-4">
+                <div class="col-6">
+                    <div class="p-3 rounded bg-light text-center h-100 border">
+                        <div class="display-4 fw-bold" style="color:${scoreColor};">${d.suspicion_score || 0}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Risk Score</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded bg-light text-center h-100 border">
+                        <div class="display-4 fw-bold text-primary">${(d.transactions_sent || 0) + (d.transactions_received || 0)}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Txns</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 bg-white border rounded">
+                        <p class="small fw-bold text-muted text-uppercase mb-2">Detected Patterns</p>
+                        <div class="d-flex flex-wrap gap-2 text-wrap">
+                            ${(d.detected_patterns || []).map(p =>
+                `<span class="badge bg-light text-dark border p-2">${p.replace(/_/g, ' ')}</span>`
+            ).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 rounded border" style="background:#f8f9fa;">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-robot text-success me-2"></i>
+                            <span class="fw-bold small text-uppercase">AI Forensic Analysis</span>
+                        </div>
+                        <p class="mb-0 small text-dark" style="line-height:1.6;">${d.ai_explanation || 'AI explanation not available.'}</p>
+                    </div>
+                </div>
+                <div class="col-12 text-center">
+                    <small class="text-muted">
+                        Sent: <strong>${d.transactions_sent || 0}</strong> •
+                        Received: <strong>${d.transactions_received || 0}</strong> •
+                        Ring ID: <strong>${d.ring_id || 'None'}</strong>
+                    </small>
+                </div>
+            </div>
+        `;
+        } catch (err) {
+            document.getElementById('modalBody').innerHTML = '<div class="text-center text-danger py-4"><i class="bi bi-exclamation-circle fs-1 mb-2"></i><p>Failed to load account details.</p></div>';
+        }
+    }
+
+    // ─── AI CHAT ─────────────────────────────────────────────────────────────────
+    function quickAsk(q) {
+        document.getElementById('chatInput').value = q;
+        sendChat();
+    }
+
+    async function sendChat() {
+        const input = document.getElementById('chatInput');
+        const question = input.value.trim();
+        if (!question) return;
+        input.value = '';
+
+        const messages = document.getElementById('chatMessages');
+
+        // User bubble
+        messages.innerHTML += `
+        <div class="d-flex flex-column align-items-end">
+            <p class="chat-label">YOU</p>
+            <div class="chat-bubble chat-user">${question}</div>
+        </div>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        // Loading
+        const loadingId = 'loading-' + Date.now();
+        messages.innerHTML += `<div id="${loadingId}" class="chat-bubble chat-ai"><div class="spinner-border spinner-border-sm me-2"></div>Thinking...</div>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        try {
+            const res = await fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question, session_id: SESSION_ID })
+            });
+            const data = await res.json();
+
+            document.getElementById(loadingId).remove();
+            messages.innerHTML += `
+            <div>
+                <p class="chat-label">AI ANALYST</p>
+                <div class="chat-bubble chat-ai">${data.answer || 'No response.'}</div>
+            </div>`;
+            messages.scrollTop = messages.scrollHeight;
+        } catch {
+            document.getElementById(loadingId).innerHTML = '<span class="text-danger">Connection error.</span>';
+        }
+    }
+
+    function toggleChat() {
+        document.getElementById('chatWidget').classList.toggle('active');
+    }
+
+    // ─── ACCOUNT SEARCH ──────────────────────────────────────────────────────────
+    document.getElementById('accountSearch')?.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        const tableRows = document.querySelectorAll('table tbody tr');
+        
+        tableRows.forEach(row => {
+            const accountCell = row.querySelector('td:first-child');
+            const accountNumber = accountCell?.textContent.toLowerCase().trim() || '';
+            
+            if (searchTerm === '' || accountNumber.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+
+{% endblock %}
