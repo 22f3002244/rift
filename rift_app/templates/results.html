@@ -588,7 +588,7 @@
     const tooltip = document.getElementById('tooltip');
 
     let currentZoom = 1;
-    const zoomBehavior = d3.zoom().scaleExtent([0.05, 15]).on('zoom', (e) => {
+    const zoomBehavior = d3.zoom().scaleExtent([0.1, 4]).on('zoom', (e) => {
         g.attr('transform', e.transform);
         currentZoom = e.transform.k;
     });
