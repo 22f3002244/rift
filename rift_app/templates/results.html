@@ -16,11 +16,20 @@
         border: 1px solid #dadce0;
         border-radius: 0px;
         width: 100%;
+        /* Mobile height */
         height: 50vh;
         min-height: 400px;
-        max-height: 650px;
+
         position: relative;
         overflow: hidden;
+    }
+
+    @media (min-width: 992px) {
+        #graphContainer {
+            height: 100% !important;
+            flex-grow: 1;
+            max-height: none;
+        }
     }
 
     #graphSvg {
