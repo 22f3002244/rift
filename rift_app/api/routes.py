@@ -4,8 +4,9 @@ import os
 import json
 import io
 from datetime import datetime
+import uuid
 import pandas as pd
-from flask import Blueprint, render_template, request, jsonify, send_file, redirect, url_for, flash, make_response, current_app
+from flask import Blueprint, render_template, request, jsonify, send_file, redirect, url_for, flash, make_response, current_app, session
 
 from rift_app.models import db, UploadSession, Transaction, FraudRing, SuspiciousAccount
 from rift_app.services.detection import run_detection
@@ -15,10 +16,18 @@ from rift_app.services.reporting import generate_pdf_report
 main_bp = Blueprint('main', __name__)
 
 
+@main_bp.before_request
+def ensure_user_session():
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+
+
 @main_bp.route('/')
 def index():
-    sessions = UploadSession.query.order_by(UploadSession.upload_time.desc()).limit(10).all()
+    user_id = session.get('user_id')
+    sessions = UploadSession.query.filter_by(user_id=user_id).order_by(UploadSession.upload_time.desc()).limit(10).all()
     return render_template('index.html', sessions=sessions)
+
 
 
 @main_bp.route('/upload', methods=['POST'])
@@ -41,13 +50,18 @@ def upload_csv():
             flash(f'Missing columns: {", ".join(missing)}', 'danger')
             return redirect(url_for('main.index'))
 
-        session = UploadSession(
+        session_record = UploadSession(
             filename=file.filename,
             total_transactions=len(df),
-            status='processing'
+            status='processing',
+            user_id=session.get('user_id')
         )
-        db.session.add(session)
+        db.session.add(session_record)
         db.session.commit()
+
+        # Update variable name to avoid conflict with flask session
+        session_id = session_record.id
+
 
         df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
         transactions = []
@@ -69,7 +83,7 @@ def upload_csv():
         rings_to_save = []
         for ring_data in results['fraud_rings']:
             ring = FraudRing(
-                session_id=session.id,
+                session_id=session_record.id,
                 ring_id=ring_data['ring_id'],
                 pattern_type=ring_data['pattern_type'],
                 risk_score=ring_data['risk_score'],
@@ -89,7 +103,7 @@ def upload_csv():
                     acc_data['ring_id']
                 )
             acc = SuspiciousAccount(
-                session_id=session.id,
+                session_id=session_record.id,
                 account_id=acc_data['account_id'],
                 suspicion_score=acc_data['suspicion_score'],
                 ring_id=acc_data['ring_id'],
@@ -99,9 +113,9 @@ def upload_csv():
             accounts_to_save.append(acc)
         db.session.bulk_save_objects(accounts_to_save)
 
-        session.total_accounts = results['summary']['total_accounts_analyzed']
-        session.processing_time = results['summary']['processing_time_seconds']
-        session.status = 'done'
+        session_record.total_accounts = results['summary']['total_accounts_analyzed']
+        session_record.processing_time = results['summary']['processing_time_seconds']
+        session_record.status = 'done'
         db.session.commit()
 
         ai_summary = generate_investigation_summary(
@@ -109,7 +123,7 @@ def upload_csv():
             results['fraud_rings'][:5]
         )
 
-        return redirect(url_for('main.results', session_id=session.id, ai_summary=ai_summary))
+        return redirect(url_for('main.results', session_id=session_record.id, ai_summary=ai_summary))
 
     except Exception as e:
         flash(f'Processing error: {str(e)}', 'danger')
