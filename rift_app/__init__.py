@@ -5,8 +5,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
-from app.models import db
-from app.api.routes import main_bp
+from rift_app.models import db
+from rift_app.api.routes import main_bp
 
 
 def create_app(config_name='development'):

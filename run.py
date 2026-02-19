@@ -1,6 +1,6 @@
 """Entry point for the application."""
 
-from app import create_app
+from rift_app import create_app
 
 if __name__ == '__main__':
     app = create_app()

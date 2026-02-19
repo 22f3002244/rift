@@ -5,12 +5,12 @@ import json
 import io
 from datetime import datetime
 import pandas as pd
-from flask import Blueprint, render_template, request, jsonify, send_file, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify, send_file, redirect, url_for, flash, make_response, current_app
 
-from app.models import db, UploadSession, Transaction, FraudRing, SuspiciousAccount
-from app.services.detection import run_detection
-from app.services.ai import explain_suspicious_account, generate_investigation_summary, chat_with_data
-from app.services.reporting import generate_pdf_report
+from rift_app.models import db, UploadSession, Transaction, FraudRing, SuspiciousAccount
+from rift_app.services.detection import run_detection
+from rift_app.services.ai import explain_suspicious_account, generate_investigation_summary, chat_with_data
+from rift_app.services.reporting import generate_pdf_report
 
 main_bp = Blueprint('main', __name__)
 
