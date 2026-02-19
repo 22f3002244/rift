@@ -132,7 +132,9 @@ def upload_csv():
 
 @main_bp.route('/results/<int:session_id>')
 def results(session_id):
-    session = UploadSession.query.get_or_404(session_id)
+    user_id = session.get('user_id')
+    # Use filter_by and first_or_404 to ensure user owns the session
+    session_record = UploadSession.query.filter_by(id=session_id, user_id=user_id).first_or_404()
     fraud_rings = FraudRing.query.filter_by(session_id=session_id).order_by(FraudRing.risk_score.desc()).all()
     suspicious_accounts = SuspiciousAccount.query.filter_by(session_id=session_id)\
         .order_by(SuspiciousAccount.suspicion_score.desc()).all()
@@ -169,7 +171,7 @@ def results(session_id):
     }
 
     return render_template('results.html',
-                           session=session,
+                           session=session_record,
                            fraud_rings=fraud_rings,
                            suspicious_accounts=suspicious_accounts,
                            ai_summary=ai_summary,
@@ -178,7 +180,8 @@ def results(session_id):
 
 @main_bp.route('/api/download-json/<int:session_id>')
 def download_json(session_id):
-    session = UploadSession.query.get_or_404(session_id)
+    user_id = session.get('user_id')
+    session_record = UploadSession.query.filter_by(id=session_id, user_id=user_id).first_or_404()
     fraud_rings = FraudRing.query.filter_by(session_id=session_id).order_by(FraudRing.risk_score.desc()).all()
     suspicious_accounts = SuspiciousAccount.query.filter_by(session_id=session_id)\
         .order_by(SuspiciousAccount.suspicion_score.desc()).all()
@@ -201,10 +204,10 @@ def download_json(session_id):
             } for r in fraud_rings
         ],
         'summary': {
-            'total_accounts_analyzed': session.total_accounts,
+            'total_accounts_analyzed': session_record.total_accounts,
             'suspicious_accounts_flagged': len(suspicious_accounts),
             'fraud_rings_detected': len(fraud_rings),
-            'processing_time_seconds': session.processing_time
+            'processing_time_seconds': session_record.processing_time
         }
     }
 
@@ -218,7 +221,8 @@ def download_json(session_id):
 
 @main_bp.route('/api/download-pdf/<int:session_id>')
 def download_pdf(session_id):
-    session = UploadSession.query.get_or_404(session_id)
+    user_id = session.get('user_id')
+    session_record = UploadSession.query.filter_by(id=session_id, user_id=user_id).first_or_404()
     fraud_rings = FraudRing.query.filter_by(session_id=session_id).order_by(FraudRing.risk_score.desc()).all()
     suspicious_accounts = SuspiciousAccount.query.filter_by(session_id=session_id)\
         .order_by(SuspiciousAccount.suspicion_score.desc()).all()
@@ -227,7 +231,7 @@ def download_pdf(session_id):
 
     transactions = Transaction.query.filter_by(session_id=session_id).order_by(Transaction.timestamp).all()
 
-    pdf_buffer = generate_pdf_report(session, fraud_rings, suspicious_accounts, ai_summary, transactions)
+    pdf_buffer = generate_pdf_report(session_record, fraud_rings, suspicious_accounts, ai_summary, transactions)
 
     return send_file(pdf_buffer, mimetype='application/pdf',
                      as_attachment=True, download_name=f'investigation_report_{session_id}.pdf')
@@ -235,6 +239,10 @@ def download_pdf(session_id):
 
 @main_bp.route('/api/graph-data/<int:session_id>')
 def graph_data_api(session_id):
+    user_id = session.get('user_id')
+    # Validate ownership
+    UploadSession.query.filter_by(id=session_id, user_id=user_id).first_or_404()
+    
     transactions = Transaction.query.filter_by(session_id=session_id).all()
     suspicious_accounts = SuspiciousAccount.query.filter_by(session_id=session_id).all()
     fraud_rings = FraudRing.query.filter_by(session_id=session_id).all()
@@ -275,14 +283,19 @@ def ai_chat():
     if not question or not session_id:
         return jsonify({'error': 'Missing question or session_id'}), 400
 
-    session = UploadSession.query.get(session_id)
+    user_id = session.get('user_id')
+    session_record = UploadSession.query.filter_by(id=session_id, user_id=user_id).first()
+    
+    if not session_record:
+         return jsonify({'error': 'Session not found or access denied'}), 404
+
     fraud_rings = FraudRing.query.filter_by(session_id=session_id).all()
     suspicious_accounts = SuspiciousAccount.query.filter_by(session_id=session_id).limit(10).all()
 
     context = f"""
-Session: {session.filename} uploaded on {session.upload_time}
-Total transactions: {session.total_transactions}
-Total accounts: {session.total_accounts}
+Session: {session_record.filename} uploaded on {session_record.upload_time}
+Total transactions: {session_record.total_transactions}
+Total accounts: {session_record.total_accounts}
 Fraud rings detected: {len(fraud_rings)}
 Top suspicious accounts: {', '.join([a.account_id for a in suspicious_accounts[:5]])}
 Ring types: {', '.join(set([r.pattern_type for r in fraud_rings]))}
@@ -294,6 +307,10 @@ Ring types: {', '.join(set([r.pattern_type for r in fraud_rings]))}
 
 @main_bp.route('/api/account-detail/<int:session_id>/<account_id>')
 def account_detail(session_id, account_id):
+    user_id = session.get('user_id')
+    # Validate ownership
+    UploadSession.query.filter_by(id=session_id, user_id=user_id).first_or_404()
+
     acc = SuspiciousAccount.query.filter_by(session_id=session_id, account_id=account_id).first()
     if not acc:
         return jsonify({'account_id': account_id, 'suspicious': False})
