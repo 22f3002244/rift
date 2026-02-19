@@ -1,5 +1,4 @@
 # AirBind — Money Muling Detection Engine
-**RIFT 2026 Hackathon | Graph Theory / Financial Crime Detection Track**
 
 ## Overview
 AirBind is a financial crime detection system that analyzes transaction networks to identify money muling patterns using graph algorithms and AI-powered forensic analysis. Upload a CSV file of transactions, and AirBind automatically detects fraud rings, smurfing operations, shell chains, and generates detailed risk reports with PDF exports and interactive visualizations.
@@ -358,30 +357,7 @@ Separation of concerns with dedicated services:
 - **Database**: Migrate to PostgreSQL for >1M transactions
 - **AI API**: Rate limiting and batch processing for high volume
 
-## Code Quality & Documentation
-
-✅ **Removed**: 40+ unnecessary comments and duplicate code files  
-✅ **Restructured**: Flat project → professional modular architecture  
-✅ **Verified**: All 9 routes cross-checked with backend code and frontend integration  
-✅ **Documented**: 6 comprehensive guides (400+ lines combined)  
-✅ **Tested**: Complete testing checklist with curl examples  
 
 ## License & Attribution
 
 **RIFT 2026 Hackathon** - Graph Theory / Financial Crime Detection Track
-
-AirBind uses:
-- [Flask](https://flask.palletsprojects.com/) - BSD License
-- [NetworkX](https://networkx.org/) - BSD License
-- [Pandas](https://pandas.pydata.org/) - BSD License
-- [ReportLab](https://www.reportlab.com/opensource/) - BSD License
-- [D3.js](https://d3js.org/) - ISC License
-- [Bootstrap](https://getbootstrap.com/) - MIT License
-- [Groq API](https://groq.com/) - Commercial (with free tier)
-
----
-
-**Status**: Production Ready ✅  
-**Last Updated**: February 2026  
-**Maintainers**: RIFT 2026 Team
-
