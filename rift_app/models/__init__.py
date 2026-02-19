@@ -8,6 +8,7 @@ db = SQLAlchemy()
 class UploadSession(db.Model):
     __tablename__ = 'upload_sessions'
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(36), index=True, nullable=True) # UUID
     filename = db.Column(db.String(255), nullable=False)
     upload_time = db.Column(db.DateTime, default=datetime.utcnow)
     total_transactions = db.Column(db.Integer, default=0)
