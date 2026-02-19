@@ -8,3 +8,5 @@ groq==0.4.2
 python-dotenv==1.0.0
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
+reportlab>=4.0.0
+matplotlib>=3.8.0
