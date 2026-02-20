@@ -85,7 +85,7 @@ def upload_csv():
         transactions = []
         for _, row in df.iterrows():
             tx = Transaction(
-                session_id=session.id,
+                session_id=session_record.id,
                 transaction_id=str(row.get('transaction_id', '')),
                 sender_id=str(row['sender_id']),
                 receiver_id=str(row['receiver_id']),
