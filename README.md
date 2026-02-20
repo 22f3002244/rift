@@ -1,6 +1,6 @@
 # AirBind — Money Muling Detection Engine
 
-> AI-assisted financial crime detection system for identifying money muling, fraud rings, and transaction layering patterns.
+AI-assisted financial crime detection system for identifying money muling, fraud rings, and transaction layering patterns.
 
 ---
 
